@@ -13,11 +13,15 @@ WEEK = datetime.now().isocalendar()[1]
 
 PROMPT = """Izvuci promotivne proizvode iz ovog teksta hrvatskog retail kataloga.
 
+PRIORITETNI BRENDOVI - obavezno izvuci ako se pojave:
+Ariel, Persil, Jar, Somat, Bref, Finish, Domestos, Perwoll, Dash, Gliss, Pantene, Syoss, Head&Shoulders, Elseve, Garnier, Fairy, Lenor, Ajax, Cif, Dove, Nivea, Colgate
+
 Vrati JSON array. Za svaki proizvod izvuci:
 - retailer: ime trgovine
-- brand: ime brenda (Dukat, Podravka, Kras, Vindija, Milka, Nivea, Henkel, P&G, Saponia, Nestle, Unilever, Franck, Ledo, Zvijezda, PepsiCo, Ferrero, K Plus, S Budget, K Classic, Cien)
+- brand: ime brenda. VAZNO - koristi tocno ime brenda sa ambalize:
+  Ariel, Persil, Jar, Somat, Bref, Finish, Domestos, Perwoll, Dash, Gliss, Pantene, Syoss, Head&Shoulders, Elseve, Garnier, Fairy, Lenor, Dukat, Podravka, Kras, Vindija, Milka, Nivea, Franck, Ledo, Zvijezda, Saponia, Violeta, K Plus, S Budget, K Classic, Cien
 - article: naziv proizvoda na hrvatskom
-- size: velicina (npr. "1L", "500g")
+- size: velicina (npr. "1L", "500g", "900ml")
 - category: jedna od: Dairy, Beverages, Snacks, Meat & Deli, Bakery, Frozen, Household, Personal Care, Canned Goods, Confectionery
 - regular_price: redovna cijena EUR (broj ili null)
 - promo_price: akcijska cijena EUR (broj)
@@ -27,9 +31,10 @@ Vrati JSON array. Za svaki proizvod izvuci:
 - valid_to: datum kraja (YYYY-MM-DD)
 
 PRAVILA:
-- Samo prehrambene, pice, kucanske i higijenske proizvode
-- PRESKOCI elektroniku, odjecu, alat, namjestaj
-- Izvuci MAKSIMALNO 25 najvaznijih proizvoda
+- Izvuci MAKSIMALNO 50 proizvoda
+- OBAVEZNO uključi sve Household i Personal Care proizvode
+- OBAVEZNO uključi sve prioritetne brendove ako postoje
+- Preskoci elektroniku, odjecu, alat, namjestaj
 - Vrati SAMO validan JSON array, BEZ markdown formatiranja
 - Ako nema proizvoda vrati []"""
 
@@ -39,13 +44,13 @@ def extract_from_text(text, retailer_name):
     print("[AI] Extracting: " + retailer_name + "...")
     print("     Input: " + str(len(text)) + " znakova")
 
-    if len(text) > 8000:
-        text = text[:8000]
+    if len(text) > 12000:
+        text = text[:12000]
 
     try:
         response = client.messages.create(
             model="claude-sonnet-4-5-20250929",
-            max_tokens=8192,
+            max_tokens=16000,
             messages=[{
                 "role": "user",
                 "content": "Retailer: " + retailer_name + "\n\nTekst:\n" + text + "\n\n" + PROMPT
@@ -78,7 +83,25 @@ def extract_from_text(text, retailer_name):
             else:
                 products = []
 
-        print("     IZVUCENO: " + str(len(products)) + " proizvoda")
+        # Brojac prioritetnih brendova
+        priority = [
+            "Ariel", "Persil", "Jar", "Somat", "Bref",
+            "Finish", "Domestos", "Perwoll", "Dash",
+            "Gliss", "Pantene", "Syoss", "Elseve",
+            "Garnier", "Fairy", "Lenor"
+        ]
+        found = []
+        for p in products:
+            b = p.get("brand", "")
+            if b in priority:
+                found.append(b)
+
+        msg = "     IZVUCENO: " + str(len(products))
+        msg = msg + " proizvoda"
+        if found:
+            msg = msg + " (prioritetni: "
+            msg = msg + ", ".join(set(found)) + ")"
+        print(msg)
 
         for p in products:
             p["scan_date"] = TODAY
@@ -94,7 +117,8 @@ def extract_from_text(text, retailer_name):
 def process_all():
     folder = Path("leaflets/" + TODAY)
     if not folder.exists():
-        print("Nema mape leaflets/" + TODAY + " — pokreni prvo scraper.py!")
+        print("Nema mape leaflets/" + TODAY)
+        print("Pokreni prvo scraper.py!")
         return []
 
     retailer_map = {
@@ -121,7 +145,8 @@ def process_all():
 
     print("")
     print("=" * 50)
-    print("UKUPNO: " + str(len(all_products)) + " proizvoda")
+    msg = "UKUPNO: " + str(len(all_products))
+    print(msg + " proizvoda")
     print("Spremljeno u: " + str(output))
 
     from collections import Counter
@@ -129,6 +154,12 @@ def process_all():
     print("")
     print("Po retaileru:")
     for r, c in ret.most_common():
+        print("  " + r + ": " + str(c))
+
+    cat = Counter(p.get("category", "?") for p in all_products)
+    print("")
+    print("Po kategoriji:")
+    for r, c in cat.most_common():
         print("  " + r + ": " + str(c))
 
     return all_products
