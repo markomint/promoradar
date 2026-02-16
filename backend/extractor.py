@@ -11,18 +11,21 @@ client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 TODAY = datetime.now().strftime("%Y-%m-%d")
 WEEK = datetime.now().isocalendar()[1]
 
-PROMPT = """Izvuci promotivne proizvode iz ovog teksta hrvatskog retail kataloga.
+PROMPT = """Izvuci SAMO proizvode iz kategorija HOUSEHOLD i PERSONAL CARE iz ovog teksta hrvatskog retail kataloga.
 
-PRIORITETNI BRENDOVI - obavezno izvuci ako se pojave:
-Ariel, Persil, Jar, Somat, Bref, Finish, Domestos, Perwoll, Dash, Gliss, Pantene, Syoss, Head&Shoulders, Elseve, Garnier, Fairy, Lenor, Ajax, Cif, Dove, Nivea, Colgate
+To ukljucuje: deterdzente, omeksivace, sredstva za ciscenje, sredstva za pranje suda, tablete za perilicu, osvjezivace, toaletni papir, maramice, sampone, gelove za tusiranje, dezodoranse, kreme, zubne paste, gel za pranje rublja, kapsule za pranje.
 
-Vrati JSON array. Za svaki proizvod izvuci:
+PRIORITETNI BRENDOVI - obavezno izvuci sve koje nadjes:
+Ariel, Persil, Jar, Somat, Bref, Finish, Domestos, Perwoll, Dash, Gliss, Pantene, Syoss, Head&Shoulders, Elseve, Garnier, Fairy, Lenor, Ajax, Cif, Dove, Nivea, Colgate, Palmolive, Oral-B, Always, Naturella, Gillette, Old Spice, Violeta, Faks, Ornel, Saponia, Cien, Denkmit, W5, Balea
+
+NE izvlaci: hranu, pice, meso, mlijeko, sir, cokoladu, cipove, smrznuto, konzerve, kruh.
+
+Vrati JSON array. Za svaki proizvod:
 - retailer: ime trgovine
-- brand: ime brenda. VAZNO - koristi tocno ime brenda sa ambalize:
-  Ariel, Persil, Jar, Somat, Bref, Finish, Domestos, Perwoll, Dash, Gliss, Pantene, Syoss, Head&Shoulders, Elseve, Garnier, Fairy, Lenor, Dukat, Podravka, Kras, Vindija, Milka, Nivea, Franck, Ledo, Zvijezda, Saponia, Violeta, K Plus, S Budget, K Classic, Cien
+- brand: tocno ime brenda sa ambalaze
 - article: naziv proizvoda na hrvatskom
-- size: velicina (npr. "1L", "500g", "900ml")
-- category: jedna od: Dairy, Beverages, Snacks, Meat & Deli, Bakery, Frozen, Household, Personal Care, Canned Goods, Confectionery
+- size: velicina (npr. "1L", "900ml", "50 tableta", "8 rola")
+- category: "Household" ili "Personal Care"
 - regular_price: redovna cijena EUR (broj ili null)
 - promo_price: akcijska cijena EUR (broj)
 - discount_pct: postotak popusta (cijeli broj)
@@ -31,12 +34,10 @@ Vrati JSON array. Za svaki proizvod izvuci:
 - valid_to: datum kraja (YYYY-MM-DD)
 
 PRAVILA:
-- Izvuci MAKSIMALNO 50 proizvoda
-- OBAVEZNO uključi sve Household i Personal Care proizvode
-- OBAVEZNO uključi sve prioritetne brendove ako postoje
-- Preskoci elektroniku, odjecu, alat, namjestaj
+- SAMO Household i Personal Care proizvode
+- Izvuci SVE takve proizvode koje nadjes (do max 50)
 - Vrati SAMO validan JSON array, BEZ markdown formatiranja
-- Ako nema proizvoda vrati []"""
+- Ako nema takvih proizvoda vrati []"""
 
 
 def extract_from_text(text, retailer_name):
@@ -83,31 +84,40 @@ def extract_from_text(text, retailer_name):
             else:
                 products = []
 
-        # Brojac prioritetnih brendova
+        # Filtriraj samo Household i Personal Care
+        filtered = []
+        for p in products:
+            cat = p.get("category", "")
+            if cat in ["Household", "Personal Care"]:
+                filtered.append(p)
+
         priority = [
             "Ariel", "Persil", "Jar", "Somat", "Bref",
             "Finish", "Domestos", "Perwoll", "Dash",
             "Gliss", "Pantene", "Syoss", "Elseve",
-            "Garnier", "Fairy", "Lenor"
+            "Garnier", "Fairy", "Lenor", "Nivea",
+            "Dove", "Colgate", "Head&Shoulders",
+            "Violeta", "Faks", "Ornel", "Saponia",
+            "Cien", "Balea", "Denkmit", "Old Spice",
+            "Gillette", "Always", "Palmolive"
         ]
         found = []
-        for p in products:
+        for p in filtered:
             b = p.get("brand", "")
             if b in priority:
                 found.append(b)
 
-        msg = "     IZVUCENO: " + str(len(products))
+        msg = "     IZVUCENO: " + str(len(filtered))
         msg = msg + " proizvoda"
         if found:
-            msg = msg + " (prioritetni: "
-            msg = msg + ", ".join(set(found)) + ")"
+            msg = msg + " (" + ", ".join(sorted(set(found))) + ")"
         print(msg)
 
-        for p in products:
+        for p in filtered:
             p["scan_date"] = TODAY
             p["scan_week"] = WEEK
 
-        return products
+        return filtered
 
     except Exception as e:
         print("     GRESKA API: " + str(e))
@@ -145,8 +155,14 @@ def process_all():
 
     print("")
     print("=" * 50)
-    msg = "UKUPNO: " + str(len(all_products))
-    print(msg + " proizvoda")
+    print("UKUPNO: " + str(len(all_products)) + " proizvoda")
+    print("  Household: " + str(len([
+        p for p in all_products if p.get("category") == "Household"
+    ])))
+    print("  Personal Care: " + str(len([
+        p for p in all_products if p.get("category") == "Personal Care"
+    ])))
+    print("")
     print("Spremljeno u: " + str(output))
 
     from collections import Counter
@@ -156,11 +172,11 @@ def process_all():
     for r, c in ret.most_common():
         print("  " + r + ": " + str(c))
 
-    cat = Counter(p.get("category", "?") for p in all_products)
+    brands = Counter(p.get("brand", "?") for p in all_products)
     print("")
-    print("Po kategoriji:")
-    for r, c in cat.most_common():
-        print("  " + r + ": " + str(c))
+    print("Po brendu:")
+    for b, c in brands.most_common(20):
+        print("  " + b + ": " + str(c))
 
     return all_products
 
