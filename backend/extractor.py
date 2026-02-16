@@ -13,7 +13,7 @@ WEEK = datetime.now().isocalendar()[1]
 
 PROMPT = """Izvuci SAMO proizvode iz kategorija HOUSEHOLD i PERSONAL CARE iz ovog teksta hrvatskog retail kataloga.
 
-To ukljucuje: deterdzente, omeksivace, sredstva za ciscenje, sredstva za pranje suda, tablete za perilicu, osvjezivace, toaletni papir, maramice, sampone, gelove za tusiranje, dezodoranse, kreme, zubne paste, gel za pranje rublja, kapsule za pranje.
+To ukljucuje: deterdzente, omeksivace, sredstva za ciscenje, sredstva za pranje suda, tablete za perilicu, osvjezivace, toaletni papir, maramice, sampone, gelove za tusiranje, dezodoranse, kreme, zubne paste, gel za pranje rublja, kapsule za pranje, losione, sapune.
 
 PRIORITETNI BRENDOVI - obavezno izvuci sve koje nadjes:
 Ariel, Persil, Jar, Somat, Bref, Finish, Domestos, Perwoll, Dash, Gliss, Pantene, Syoss, Head&Shoulders, Elseve, Garnier, Fairy, Lenor, Ajax, Cif, Dove, Nivea, Colgate, Palmolive, Oral-B, Always, Naturella, Gillette, Old Spice, Violeta, Faks, Ornel, Saponia, Cien, Denkmit, W5, Balea
@@ -35,26 +35,36 @@ Vrati JSON array. Za svaki proizvod:
 
 PRAVILA:
 - SAMO Household i Personal Care proizvode
-- Izvuci SVE takve proizvode koje nadjes (do max 50)
+- Izvuci SVE takve proizvode koje nadjes u tekstu
 - Vrati SAMO validan JSON array, BEZ markdown formatiranja
 - Ako nema takvih proizvoda vrati []"""
 
 
-def extract_from_text(text, retailer_name):
-    print("")
-    print("[AI] Extracting: " + retailer_name + "...")
-    print("     Input: " + str(len(text)) + " znakova")
+def split_text(text, chunk_size=8000, overlap=500):
+    """Podijeli tekst u manje dijelove s preklapanjem."""
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = start + chunk_size
+        chunk = text[start:end]
+        chunks.append(chunk)
+        start = end - overlap
+    return chunks
 
-    if len(text) > 12000:
-        text = text[:12000]
+
+def extract_chunk(chunk, retailer_name, chunk_num, total_chunks):
+    """Izvuci proizvode iz jednog dijela teksta."""
+    label = retailer_name + " (" + str(chunk_num)
+    label = label + "/" + str(total_chunks) + ")"
+    print("     Dio " + str(chunk_num) + "/" + str(total_chunks))
 
     try:
         response = client.messages.create(
             model="claude-sonnet-4-5-20250929",
-            max_tokens=16000,
+            max_tokens=8192,
             messages=[{
                 "role": "user",
-                "content": "Retailer: " + retailer_name + "\n\nTekst:\n" + text + "\n\n" + PROMPT
+                "content": "Retailer: " + retailer_name + "\n\nTekst (dio " + str(chunk_num) + " od " + str(total_chunks) + "):\n" + chunk + "\n\n" + PROMPT
             }]
         )
 
@@ -79,7 +89,7 @@ def extract_from_text(text, retailer_name):
                 try:
                     products = json.loads(trimmed)
                 except json.JSONDecodeError:
-                    print("     GRESKA: Ne mogu popraviti JSON")
+                    print("       GRESKA JSON u diu " + str(chunk_num))
                     products = []
             else:
                 products = []
@@ -91,37 +101,76 @@ def extract_from_text(text, retailer_name):
             if cat in ["Household", "Personal Care"]:
                 filtered.append(p)
 
-        priority = [
-            "Ariel", "Persil", "Jar", "Somat", "Bref",
-            "Finish", "Domestos", "Perwoll", "Dash",
-            "Gliss", "Pantene", "Syoss", "Elseve",
-            "Garnier", "Fairy", "Lenor", "Nivea",
-            "Dove", "Colgate", "Head&Shoulders",
-            "Violeta", "Faks", "Ornel", "Saponia",
-            "Cien", "Balea", "Denkmit", "Old Spice",
-            "Gillette", "Always", "Palmolive"
-        ]
-        found = []
-        for p in filtered:
-            b = p.get("brand", "")
-            if b in priority:
-                found.append(b)
-
-        msg = "     IZVUCENO: " + str(len(filtered))
-        msg = msg + " proizvoda"
-        if found:
-            msg = msg + " (" + ", ".join(sorted(set(found))) + ")"
-        print(msg)
-
-        for p in filtered:
-            p["scan_date"] = TODAY
-            p["scan_week"] = WEEK
-
+        print("       " + str(len(filtered)) + " proizvoda")
         return filtered
 
     except Exception as e:
-        print("     GRESKA API: " + str(e))
+        print("       GRESKA: " + str(e))
         return []
+
+
+def deduplicate(products):
+    """Makni duplikate bazirano na brand + article + retailer."""
+    seen = set()
+    unique = []
+    for p in products:
+        key = p.get("retailer", "")
+        key = key + "|" + p.get("brand", "")
+        key = key + "|" + p.get("article", "")
+        if key not in seen:
+            seen.add(key)
+            unique.append(p)
+    return unique
+
+
+def extract_from_text(text, retailer_name):
+    print("")
+    print("[AI] Extracting: " + retailer_name + "...")
+    total_chars = str(len(text))
+    print("     Input: " + total_chars + " znakova")
+
+    # Podijeli tekst u dijelove
+    chunks = split_text(text, 8000, 500)
+    total = len(chunks)
+    print("     Podijeljeno u " + str(total) + " dijelova")
+
+    all_products = []
+    for i, chunk in enumerate(chunks):
+        products = extract_chunk(chunk, retailer_name, i + 1, total)
+        all_products.extend(products)
+
+    # Makni duplikate nastale preklapanjem
+    unique = deduplicate(all_products)
+
+    # Dodaj metadata
+    for p in unique:
+        p["scan_date"] = TODAY
+        p["scan_week"] = WEEK
+
+    # Prikazi nadjene brendove
+    priority = [
+        "Ariel", "Persil", "Jar", "Somat", "Bref",
+        "Finish", "Domestos", "Perwoll", "Dash",
+        "Gliss", "Pantene", "Syoss", "Elseve",
+        "Garnier", "Fairy", "Lenor", "Nivea",
+        "Dove", "Colgate", "Head&Shoulders",
+        "Violeta", "Faks", "Ornel", "Saponia",
+        "Cien", "Balea", "Denkmit", "Old Spice",
+        "Gillette", "Always", "Palmolive"
+    ]
+    found = []
+    for p in unique:
+        b = p.get("brand", "")
+        if b in priority:
+            found.append(b)
+
+    msg = "     UKUPNO: " + str(len(unique)) + " jedinstvenih"
+    if found:
+        brands_str = ", ".join(sorted(set(found)))
+        msg = msg + " (" + brands_str + ")"
+    print(msg)
+
+    return unique
 
 
 def process_all():
@@ -156,12 +205,12 @@ def process_all():
     print("")
     print("=" * 50)
     print("UKUPNO: " + str(len(all_products)) + " proizvoda")
-    print("  Household: " + str(len([
-        p for p in all_products if p.get("category") == "Household"
-    ])))
-    print("  Personal Care: " + str(len([
-        p for p in all_products if p.get("category") == "Personal Care"
-    ])))
+
+    hh = len([p for p in all_products if p.get("category") == "Household"])
+    pc = len([p for p in all_products if p.get("category") == "Personal Care"])
+    print("  Household: " + str(hh))
+    print("  Personal Care: " + str(pc))
+
     print("")
     print("Spremljeno u: " + str(output))
 
@@ -175,7 +224,7 @@ def process_all():
     brands = Counter(p.get("brand", "?") for p in all_products)
     print("")
     print("Po brendu:")
-    for b, c in brands.most_common(20):
+    for b, c in brands.most_common(25):
         print("  " + b + ": " + str(c))
 
     return all_products
