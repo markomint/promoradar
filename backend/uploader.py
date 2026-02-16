@@ -20,6 +20,16 @@ def upload_products(products):
     print("")
     print("[UPLOAD] " + total + " proizvoda...")
 
+    # Obrisi stare podatke za danasnji datum
+    # Ovo sprijecava duplikate kad pokrenemo vise puta
+    try:
+        result = supabase.table("promo_items").delete().eq(
+            "scan_date", TODAY
+        ).execute()
+        print("  Obrisani stari podaci za " + TODAY)
+    except Exception as e:
+        print("  Napomena: " + str(e))
+
     rows = []
     for p in products:
         row = {}
