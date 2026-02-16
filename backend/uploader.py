@@ -16,14 +16,33 @@ TODAY = datetime.now().strftime("%Y-%m-%d")
 
 
 def upload_products(products):
-    total = str(len(products))
+    # Filtriraj samo veljaca 2026 i novije
+    filtered = []
+    for p in products:
+        vto = p.get("valid_to", "")
+        vfrom = p.get("valid_from", "")
+        # Zadrzi ako valid_to >= 2026-02-01
+        # ili ako nema datuma (zadrzi svejedno)
+        if not vto and not vfrom:
+            filtered.append(p)
+        elif vto and vto >= "2026-02-01":
+            filtered.append(p)
+        elif not vto and vfrom and vfrom >= "2026-02-01":
+            filtered.append(p)
+
+    skipped = len(products) - len(filtered)
+    if skipped > 0:
+        msg = "  Preskoceno " + str(skipped)
+        msg = msg + " starih (prije veljace)"
+        print(msg)
+
+    total = str(len(filtered))
     print("")
     print("[UPLOAD] " + total + " proizvoda...")
 
     # Obrisi stare podatke za danasnji datum
-    # Ovo sprijecava duplikate kad pokrenemo vise puta
     try:
-        result = supabase.table("promo_items").delete().eq(
+        supabase.table("promo_items").delete().eq(
             "scan_date", TODAY
         ).execute()
         print("  Obrisani stari podaci za " + TODAY)
@@ -31,7 +50,7 @@ def upload_products(products):
         print("  Napomena: " + str(e))
 
     rows = []
-    for p in products:
+    for p in filtered:
         row = {}
         row["scan_date"] = p.get("scan_date") or TODAY
         row["scan_week"] = p.get("scan_week") or 8

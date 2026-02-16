@@ -2,12 +2,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 
-// ─── SUPABASE CONNECTION ────────────────────────────────────────────────────
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// ─── CONFIG ─────────────────────────────────────────────────────────────────
 const RETAILERS: Record<string, { name: string; color: string; logo: string }> = {
   Konzum: { name: "Konzum", color: "#E30613", logo: "K" },
   Spar: { name: "Spar", color: "#00843D", logo: "S" },
@@ -34,7 +32,6 @@ interface PromoItem {
   scan_date: string;
 }
 
-// ─── ICONS ──────────────────────────────────────────────────────────────────
 const SearchIcon = () => (<svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>);
 const ChevronDown = () => (<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>);
 const DownloadIcon = () => (<svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>);
@@ -42,7 +39,6 @@ const RadarIcon = () => (<svg width="28" height="28" fill="none" stroke="current
 const MailIcon = () => (<svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>);
 const DbIcon = () => (<svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>);
 
-// ─── STYLES ─────────────────────────────────────────────────────────────────
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Space+Mono:wght@400;700&display=swap');
 :root{--bg:#0B0F1A;--bg2:#111827;--card:#1A2035;--card-h:#1F2842;--bdr:#2A3550;--bdr2:#374160;--t1:#F1F5F9;--t2:#94A3B8;--t3:#64748B;--acc:#3B82F6;--grn:#10B981;--red:#EF4444;--amb:#F59E0B;--f:'DM Sans',sans-serif;--m:'Space Mono',monospace}
@@ -59,7 +55,7 @@ const CSS = `
 .live-dot{width:7px;height:7px;background:var(--grn);border-radius:50%;animation:bk 2s infinite}
 @keyframes bk{0%,100%{opacity:1}50%{opacity:.3}}
 .db-badge{background:linear-gradient(135deg,#10B981,#059669);color:#fff;padding:4px 10px;border-radius:6px;font:700 10px var(--m);letter-spacing:1px;text-transform:uppercase;display:flex;align-items:center;gap:5px}
-.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
 .kpi{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:18px;position:relative;overflow:hidden;transition:.2s}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--acc),#6366F1);opacity:0;transition:.2s}
 .kpi:hover::before{opacity:1}.kpi:hover{border-color:var(--bdr2);transform:translateY(-1px)}
@@ -88,11 +84,11 @@ td{padding:11px 14px;border-bottom:1px solid rgba(42,53,80,.5);vertical-align:mi
 tr:hover td{background:rgba(59,130,246,.03)}tr:last-child td{border-bottom:0}
 .rb{display:inline-flex;align-items:center;gap:8px;font-weight:600}
 .rd{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font:700 10px var(--m);color:#fff;flex-shrink:0}
-.pc{font:600 14px var(--m)}.pr{color:var(--t3);text-decoration:line-through;font:400 12px var(--m)}
-.db{display:inline-block;padding:3px 10px;border-radius:6px;font:700 12px var(--m)}
-.dh{background:rgba(239,68,68,.1);color:var(--red)}.dm{background:rgba(245,158,11,.1);color:var(--amb)}.dl{background:rgba(16,185,129,.1);color:var(--grn)}
+.pc{font:600 14px var(--m)}
 .pt{font-size:11px;color:var(--t2);background:rgba(148,163,184,.1);padding:3px 8px;border-radius:4px}
 .sz{font:11px var(--m);color:var(--t3);background:rgba(100,116,139,.15);padding:2px 8px;border-radius:4px}
+.cat-h{background:rgba(59,130,246,.1);color:var(--acc);padding:3px 8px;border-radius:4px;font:600 11px var(--m)}
+.cat-p{background:rgba(168,85,247,.1);color:#A855F7;padding:3px 8px;border-radius:4px;font:600 11px var(--m)}
 .tf{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-top:1px solid var(--bdr);font-size:13px;color:var(--t2)}
 .pg{display:flex;align-items:center;gap:6px}
 .pb{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--bdr);border-radius:8px;background:transparent;color:var(--t2);cursor:pointer;font:13px var(--f);transition:.15s}
@@ -108,11 +104,10 @@ tr:hover td{background:rgba(59,130,246,.03)}tr:last-child td{border-bottom:0}
 .loading{display:flex;align-items:center;justify-content:center;padding:60px;font:14px var(--m);color:var(--t2)}
 .loading-spin{width:24px;height:24px;border:3px solid var(--bdr);border-top-color:var(--acc);border-radius:50%;animation:spin 1s linear infinite;margin-right:12px}
 @keyframes spin{to{transform:rotate(360deg)}}
-@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:768px){.kpis{grid-template-columns:repeat(2,1fr)}.hdr{flex-direction:column;align-items:flex-start}.bar{flex-direction:column;align-items:stretch}.srch{min-width:unset}}
 `;
 
-// ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
 function PromoRadar() {
   const [promoData, setPromoData] = useState<PromoItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,25 +116,22 @@ function PromoRadar() {
   const [retailerFilter, setRetailerFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [brandFilter, setBrandFilter] = useState("all");
-  const [sortField, setSortField] = useState("discount_pct");
+  const [sortField, setSortField] = useState("valid_from");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [sent, setSent] = useState(false);
   const PS = 20;
 
-  // Fetch data from Supabase
   useEffect(() => {
     async function fetchData() {
       try {
         const { data, error } = await supabase
           .from("promo_items")
           .select("*")
-          .order("discount_pct", { ascending: false })
-          .limit(500);
-
+          .order("valid_from", { ascending: false })
+          .limit(1000);
         if (error) throw error;
-
         if (data && data.length > 0) {
           setPromoData(data);
           setDbConnected(true);
@@ -189,12 +181,8 @@ function PromoRadar() {
   const paged = useMemo(() => {
     return data.slice((page - 1) * PS, page * PS);
   }, [data, page]);
-
   const tp = Math.max(1, Math.ceil(data.length / PS));
-
-  useEffect(() => {
-    setPage(1);
-  }, [search, retailerFilter, categoryFilter, brandFilter]);
+  useEffect(() => { setPage(1); }, [search, retailerFilter, categoryFilter, brandFilter]);
 
   const toggle = (f: string) => {
     if (sortField === f) {
@@ -204,42 +192,24 @@ function PromoRadar() {
       setSortDir("desc");
     }
   };
-
   const Arrow = ({ f }: { f: string }) => {
     if (sortField !== f) return null;
-    return <span style={{ marginLeft: 4, fontSize: 10 }}>
-      {sortDir === "asc" ? "\u25B2" : "\u25BC"}
-    </span>;
+    return <span style={{ marginLeft: 4, fontSize: 10 }}>{sortDir === "asc" ? "\u25B2" : "\u25BC"}</span>;
   };
 
   const cats = [...new Set(promoData.map(d => d.category).filter(Boolean))].sort();
   const brands = [...new Set(promoData.map(d => d.brand).filter(Boolean))].sort();
   const retailerNames = [...new Set(promoData.map(d => d.retailer).filter(Boolean))].sort();
-
-  const avgDisc = promoData.length > 0
-    ? (promoData.reduce((s, d) => s + (d.discount_pct || 0), 0) / promoData.length).toFixed(1)
-    : "0";
-  const maxDisc = promoData.length > 0
-    ? Math.max(...promoData.map(d => d.discount_pct || 0))
-    : 0;
-
-  const scanDate = promoData.length > 0
-    ? promoData[0].scan_date || "N/A"
-    : "N/A";
-
-  const dc = (p: number) => p >= 35 ? "dh" : p >= 25 ? "dm" : "dl";
-
-  const getRet = (name: string) => {
-    return RETAILERS[name] || { name: name, color: "#666", logo: "?" };
-  };
+  const householdCount = promoData.filter(p => p.category === "Household").length;
+  const personalCount = promoData.filter(p => p.category === "Personal Care").length;
+  const scanDate = promoData.length > 0 ? promoData[0].scan_date || "N/A" : "N/A";
+  const getRet = (name: string) => RETAILERS[name] || { name: name, color: "#666", logo: "?" };
 
   const exportCSV = () => {
-    const h = ["Retailer","Brand","Article","Size","Category","Regular","Promo","Discount %","Type","From","To"];
+    const h = ["Retailer","Brand","Article","Size","Category","Akcijska cijena EUR","Tip akcije","Vrijedi od","Vrijedi do"];
     const r = data.map(d => {
-      const reg = d.regular_price ? d.regular_price.toString() : "";
       const pro = d.promo_price ? d.promo_price.toString() : "";
-      const disc = d.discount_pct ? d.discount_pct.toString() + "%" : "";
-      return [d.retailer, d.brand, d.article, d.size || "", d.category || "", reg, pro, disc, d.promo_type || "", d.valid_from || "", d.valid_to || ""];
+      return [d.retailer, d.brand, d.article, d.size || "", d.category || "", pro, d.promo_type || "", d.valid_from || "", d.valid_to || ""];
     });
     const csv = [h, ...r].map(row => row.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -260,91 +230,58 @@ function PromoRadar() {
             <div className="logo-i"><RadarIcon /></div>
             <div>
               <h1>PromoRadar</h1>
-              <span>Competitive Promo Intelligence — Croatia</span>
+              <span>Household & Personal Care — Croatia</span>
             </div>
           </div>
           <div className="hdr-r">
-            {dbConnected && (
-              <span className="db-badge">
-                <DbIcon /> LIVE DATABASE
-              </span>
-            )}
-            <div className="live">
-              <div className="live-dot" />
-              Scan {scanDate}
-            </div>
+            {dbConnected && <span className="db-badge"><DbIcon /> LIVE</span>}
+            <div className="live"><div className="live-dot" />Scan {scanDate}</div>
           </div>
         </header>
 
         {dbConnected && (
           <div className="src-note">
-            <strong>&#x2705; Povezano na Supabase bazu!</strong> Prikazujem {promoData.length} proizvoda iz baze podataka. Podaci se automatski osvježavaju svakog četvrtka.
+            <strong>Household & Personal Care promo tracking</strong> — {promoData.length} proizvoda iz {retailerNames.length} retailera. Samo katalozi od veljače 2026. Automatsko osvježavanje svakog četvrtka.
           </div>
         )}
 
         {loading ? (
-          <div className="loading">
-            <div className="loading-spin"></div>
-            Učitavam podatke iz baze...
-          </div>
+          <div className="loading"><div className="loading-spin"></div>Učitavam...</div>
         ) : (
           <>
             <div className="kpis">
               <div className="kpi">
                 <div className="kpi-l">Retailers</div>
                 <div className="kpi-v">{retailerNames.length}</div>
-                <div className="kpi-s">Active this scan</div>
+                <div className="kpi-s">Aktivni retaileri</div>
               </div>
               <div className="kpi">
-                <div className="kpi-l">Promo Items</div>
-                <div className="kpi-v">{promoData.length}</div>
-                <div className="kpi-s">From database</div>
+                <div className="kpi-l">Household</div>
+                <div className="kpi-v" style={{ color: "var(--acc)" }}>{householdCount}</div>
+                <div className="kpi-s">Deterdženti, čišćenje, papir</div>
               </div>
               <div className="kpi">
-                <div className="kpi-l">Unique Brands</div>
+                <div className="kpi-l">Personal Care</div>
+                <div className="kpi-v" style={{ color: "#A855F7" }}>{personalCount}</div>
+                <div className="kpi-s">Šamponi, gelovi, kreme</div>
+              </div>
+              <div className="kpi">
+                <div className="kpi-l">Brendovi</div>
                 <div className="kpi-v">{brands.length}</div>
-                <div className="kpi-s">FMCG & Private Label</div>
-              </div>
-              <div className="kpi">
-                <div className="kpi-l">Avg. Discount</div>
-                <div className="kpi-v" style={{ color: "var(--amb)" }}>{avgDisc}%</div>
-                <div className="kpi-s">Across all promos</div>
-              </div>
-              <div className="kpi">
-                <div className="kpi-l">Deepest Cut</div>
-                <div className="kpi-v" style={{ color: "var(--red)" }}>{maxDisc}%</div>
-                <div className="kpi-s">Best deal this week</div>
+                <div className="kpi-s">Unique brands tracked</div>
               </div>
             </div>
 
             <div className="chips">
-              <button
-                className={"chip" + (retailerFilter === "all" ? " on" : "")}
-                style={retailerFilter === "all" ? { background: "var(--acc)" } : {}}
-                onClick={() => setRetailerFilter("all")}
-              >Svi</button>
+              <button className={"chip" + (retailerFilter === "all" ? " on" : "")} style={retailerFilter === "all" ? { background: "var(--acc)" } : {}} onClick={() => setRetailerFilter("all")}>Svi</button>
               {retailerNames.map(name => {
                 const r = getRet(name);
-                return (
-                  <button
-                    key={name}
-                    className={"chip" + (retailerFilter === name ? " on" : "")}
-                    style={retailerFilter === name ? { background: r.color } : {}}
-                    onClick={() => setRetailerFilter(retailerFilter === name ? "all" : name)}
-                  >{r.name}</button>
-                );
+                return <button key={name} className={"chip" + (retailerFilter === name ? " on" : "")} style={retailerFilter === name ? { background: r.color } : {}} onClick={() => setRetailerFilter(retailerFilter === name ? "all" : name)}>{r.name}</button>;
               })}
             </div>
 
             <div className="bar">
-              <div className="srch">
-                <SearchIcon />
-                <input
-                  placeholder="Pretraga po brendu, artiklu..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                />
-              </div>
+              <div className="srch"><SearchIcon /><input placeholder="Pretraga po brendu ili artiklu..." value={search} onChange={e => setSearch(e.target.value)} /></div>
               <div className="sel">
                 <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
                   <option value="all">Sve kategorije</option>
@@ -359,64 +296,38 @@ function PromoRadar() {
                 </select>
                 <ChevronDown />
               </div>
-              <button className="btn" onClick={exportCSV}>
-                <DownloadIcon />Export CSV
-              </button>
-              <button className="btn btn-a" onClick={() => setShowModal(true)}>
-                <MailIcon />Pretplata
-              </button>
+              <button className="btn" onClick={exportCSV}><DownloadIcon />CSV</button>
+              <button className="btn btn-a" onClick={() => setShowModal(true)}><MailIcon />Pretplata</button>
             </div>
 
-            <div style={{ fontSize: 13, color: "var(--t3)", marginBottom: 12, fontFamily: "var(--m)" }}>
-              {data.length} artikala
-            </div>
+            <div style={{ fontSize: 13, color: "var(--t3)", marginBottom: 12, fontFamily: "var(--m)" }}>{data.length} artikala</div>
 
             <div className="tbl"><div className="tbl-s">
               <table><thead><tr>
+                <th className={sortField === "valid_from" ? "on" : ""} onClick={() => toggle("valid_from")}>Datum<Arrow f="valid_from" /></th>
                 <th className={sortField === "retailer" ? "on" : ""} onClick={() => toggle("retailer")}>Retailer<Arrow f="retailer" /></th>
                 <th className={sortField === "brand" ? "on" : ""} onClick={() => toggle("brand")}>Brand<Arrow f="brand" /></th>
                 <th className={sortField === "article" ? "on" : ""} onClick={() => toggle("article")}>Artikl<Arrow f="article" /></th>
                 <th>Size</th>
                 <th className={sortField === "category" ? "on" : ""} onClick={() => toggle("category")}>Kategorija<Arrow f="category" /></th>
-                <th className={sortField === "regular_price" ? "on" : ""} onClick={() => toggle("regular_price")}>Reg.<Arrow f="regular_price" /></th>
-                <th className={sortField === "promo_price" ? "on" : ""} onClick={() => toggle("promo_price")}>Akcija<Arrow f="promo_price" /></th>
-                <th className={sortField === "discount_pct" ? "on" : ""} onClick={() => toggle("discount_pct")}>Popust<Arrow f="discount_pct" /></th>
+                <th className={sortField === "promo_price" ? "on" : ""} onClick={() => toggle("promo_price")}>Akcijska cijena<Arrow f="promo_price" /></th>
                 <th>Tip</th>
-                <th>Vrijedi</th>
               </tr></thead>
               <tbody>{paged.map((item, i) => {
                 const r = getRet(item.retailer);
+                const catClass = item.category === "Household" ? "cat-h" : "cat-p";
                 return (
                   <tr key={item.id} className="fr" style={{ animationDelay: i * 15 + "ms" }}>
-                    <td>
-                      <div className="rb">
-                        <div className="rd" style={{ background: r.color }}>{r.logo}</div>
-                        {r.name}
-                      </div>
+                    <td style={{ fontSize: 11, fontFamily: "var(--m)", color: "var(--t2)", whiteSpace: "nowrap" }}>
+                      {item.valid_from || "?"}<br/>{"\u2192 " + (item.valid_to || "?")}
                     </td>
+                    <td><div className="rb"><div className="rd" style={{ background: r.color }}>{r.logo}</div>{r.name}</div></td>
                     <td><strong style={{ color: "var(--t1)" }}>{item.brand}</strong></td>
                     <td style={{ color: "var(--t2)" }}>{item.article}</td>
                     <td><span className="sz">{item.size || "-"}</span></td>
-                    <td style={{ color: "var(--t2)", fontSize: 12 }}>{item.category || "-"}</td>
-                    <td>
-                      <span className="pr">
-                        {item.regular_price ? "\u20AC" + item.regular_price.toFixed(2) : "\u2014"}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="pc" style={{ color: "var(--grn)" }}>
-                        {item.promo_price ? "\u20AC" + item.promo_price.toFixed(2) : "\u2014"}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={"db " + dc(item.discount_pct || 0)}>
-                        -{item.discount_pct || 0}%
-                      </span>
-                    </td>
+                    <td><span className={catClass}>{item.category || "-"}</span></td>
+                    <td><span className="pc" style={{ color: "var(--grn)" }}>{item.promo_price ? "\u20AC" + item.promo_price.toFixed(2) : "\u2014"}</span></td>
                     <td><span className="pt">{item.promo_type || "-"}</span></td>
-                    <td style={{ fontSize: 11, fontFamily: "var(--m)", color: "var(--t3)", lineHeight: 1.6 }}>
-                      {item.valid_from || "?"}<br/>{"\u2192 " + (item.valid_to || "?")}
-                    </td>
                   </tr>
                 );
               })}</tbody></table>
@@ -445,16 +356,8 @@ function PromoRadar() {
           <div className="md" onClick={e => e.stopPropagation()}>
             {!sent ? (<>
               <h2>Pretplata na tjedni report</h2>
-              <p>PromoRadar digest svakog cetvrtka s najnovijim promo podacima.</p>
+              <p>Household & Personal Care promo digest svakog cetvrtka.</p>
               <input type="email" placeholder="vas@email.com" autoFocus />
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--t2)", cursor: "pointer" }}>
-                  <input type="checkbox" defaultChecked /> Puni tjedni report
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--t2)", cursor: "pointer", marginTop: 8 }}>
-                  <input type="checkbox" /> Samo popusti iznad 30%
-                </label>
-              </div>
               <div className="ma">
                 <button className="btn" onClick={() => { setShowModal(false); setSent(false); }}>Odustani</button>
                 <button className="btn btn-a" onClick={() => setSent(true)}>Pretplati se</button>
