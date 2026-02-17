@@ -147,6 +147,10 @@ def clean_product(p):
             p["discount_pct"] = dp
         except (ValueError, TypeError):
             p["discount_pct"] = None
+    # Validate share_of_page
+    sop = p.get("share_of_page")
+    if sop not in ("Hero", "Premium", "Standard", "Small"):
+        p["share_of_page"] = "Standard"
     return p
 
 
@@ -179,7 +183,13 @@ Ariel, Persil, Finish, Somat, Jar, Silan, Lenor, Ornel, Violeta, Perwoll, Gliss,
 
 DATUMI: Ovaj katalog vrijedi od VALID_FROM do VALID_TO. Koristi te datume za sve proizvode OSIM ako na ovoj stranici eksplicitno pise drugaciji datum.
 
-POPUSTI: discount_pct popuni SAMO ako je postotak eksplicitno prikazan na slici (npr. "-30%"). NE racunaj sam.
+POPUSTI: discount_pct popuni SAMO ako je postotak eksplicitno prikazan na slici kao broj s postotkom (npr. "-30%", "30% popusta", ikonica/badge s postotkom, "UŠTEDI 25%"). Fokusiraj se na brojke i % znak. Ako nema eksplicitnog postotka, stavi null. NE racunaj sam iz razlike cijena.
+
+SHARE OF PAGE — klasificiraj velicinu prikaza svakog proizvoda na stranici:
+- "Hero" = proizvod zauzima pola stranice ili vise, jako istaknut, 1-2 proizvoda na cijeloj stranici
+- "Premium" = velik prikaz, oko 1/4 do 1/3 stranice, istaknut okvir
+- "Standard" = srednja kucica u gridu, 4-8 proizvoda na stranici
+- "Small" = mali prikaz, u listi ili na rubu, 9+ proizvoda na stranici
 
 Za svaki proizvod vrati:
 - brand: tocno ime brenda sa ambalaze
@@ -188,7 +198,8 @@ Za svaki proizvod vrati:
 - category: "Household" ili "Personal Care"
 - promo_price: akcijska cijena EUR ili null
 - regular_price: redovna cijena EUR ili null
-- discount_pct: postotak popusta samo ako eksplicitan ili null
+- discount_pct: postotak popusta SAMO ako eksplicitno prikazan (broj ili null)
+- share_of_page: "Hero", "Premium", "Standard" ili "Small"
 - valid_from: YYYY-MM-DD
 - valid_to: YYYY-MM-DD
 
@@ -420,7 +431,7 @@ def upload_to_supabase(products):
         row["regular_price"] = p.get("regular_price")
         row["promo_price"] = p.get("promo_price")
         row["discount_pct"] = p.get("discount_pct")
-        row["promo_type"] = p.get("promo_type")
+        row["share_of_page"] = p.get("share_of_page")
         row["valid_from"] = p.get("valid_from")
         row["valid_to"] = p.get("valid_to")
         row["source_url"] = p.get("source_url")
