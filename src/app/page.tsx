@@ -14,6 +14,8 @@ const RETAILERS: Record<string, { name: string; color: string; logo: string }> =
   Plodine: { name: "Plodine", color: "#FF6B00", logo: "P" },
   Studenac: { name: "Studenac", color: "#1B3A6B", logo: "St" },
   Tommy: { name: "Tommy", color: "#C8102E", logo: "T" },
+  Bipa: { name: "Bipa", color: "#E91E8C", logo: "B" },
+  DM: { name: "DM", color: "#FFD700", logo: "dm" },
 };
 
 interface PromoItem {
@@ -30,6 +32,7 @@ interface PromoItem {
   valid_from: string;
   valid_to: string;
   scan_date: string;
+  source_url: string | null;
 }
 
 const SearchIcon = () => (<svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>);
@@ -102,6 +105,13 @@ tr:hover td{background:rgba(59,130,246,.03)}tr:last-child td{border-bottom:0}
 .src-note{background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(59,130,246,.08));border:1px solid rgba(16,185,129,.25);border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:12px;color:var(--t2);line-height:1.6}
 .src-note strong{color:var(--t1)}
 .loading{display:flex;align-items:center;justify-content:center;padding:60px;font:14px var(--m);color:var(--t2)}
+.img-modal{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:100;animation:fi .2s;cursor:pointer}
+.img-wrap{max-width:90vw;max-height:90vh;position:relative;animation:su .25s}
+.img-wrap img{max-width:100%;max-height:85vh;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.img-info{position:absolute;bottom:-40px;left:0;right:0;text-align:center;color:var(--t2);font:12px var(--m)}
+.img-close{position:absolute;top:-16px;right:-16px;width:36px;height:36px;border-radius:50%;background:var(--card);border:1px solid var(--bdr);color:var(--t1);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;z-index:2}
+.img-close:hover{background:var(--red);border-color:var(--red)}
+tr.clickable{cursor:pointer}tr.clickable:hover td{background:rgba(59,130,246,.08)}
 .loading-spin{width:24px;height:24px;border:3px solid var(--bdr);border-top-color:var(--acc);border-radius:50%;animation:spin 1s linear infinite;margin-right:12px}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}}
@@ -121,6 +131,7 @@ function PromoRadar() {
   const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [sent, setSent] = useState(false);
+  const [previewItem, setPreviewItem] = useState<PromoItem | null>(null);
   const PS = 20;
 
   useEffect(() => {
@@ -316,8 +327,9 @@ function PromoRadar() {
               <tbody>{paged.map((item, i) => {
                 const r = getRet(item.retailer);
                 const catClass = item.category === "Household" ? "cat-h" : "cat-p";
+                const hasImg = !!item.source_url;
                 return (
-                  <tr key={item.id} className="fr" style={{ animationDelay: i * 15 + "ms" }}>
+                  <tr key={item.id} className={"fr" + (hasImg ? " clickable" : "")} style={{ animationDelay: i * 15 + "ms" }} onClick={() => hasImg && setPreviewItem(item)}>
                     <td style={{ fontSize: 11, fontFamily: "var(--m)", color: "var(--t2)", whiteSpace: "nowrap" }}>
                       {item.valid_from || "?"}<br/>{"\u2192 " + (item.valid_to || "?")}
                     </td>
@@ -370,6 +382,18 @@ function PromoRadar() {
                 <button className="btn btn-a" style={{ margin: "16px auto 0" }} onClick={() => { setShowModal(false); setSent(false); }}>OK</button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {previewItem && previewItem.source_url && (
+        <div className="img-modal" onClick={() => setPreviewItem(null)}>
+          <div className="img-wrap" onClick={e => e.stopPropagation()}>
+            <button className="img-close" onClick={() => setPreviewItem(null)}>{"\u2715"}</button>
+            <img src={previewItem.source_url} alt={previewItem.article} />
+            <div className="img-info">
+              {previewItem.retailer} — {previewItem.brand} {previewItem.article}
+              {previewItem.valid_from && (" | " + previewItem.valid_from + " \u2192 " + (previewItem.valid_to || "?"))}
+            </div>
           </div>
         </div>
       )}
