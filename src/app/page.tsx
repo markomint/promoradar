@@ -137,6 +137,7 @@ function PromoRadar() {
   const [showModal, setShowModal] = useState(false);
   const [sent, setSent] = useState(false);
   const [previewItem, setPreviewItem] = useState<PromoItem | null>(null);
+  const [weekFilter, setWeekFilter] = useState("all");
   const PS = 20;
 
   useEffect(() => {
@@ -146,7 +147,7 @@ function PromoRadar() {
           .from("promo_items")
           .select("*")
           .order("valid_from", { ascending: false })
-          .limit(1000);
+          .limit(5000);
         if (error) throw error;
         if (data && data.length > 0) {
           setPromoData(data);
@@ -163,6 +164,9 @@ function PromoRadar() {
 
   const data = useMemo(() => {
     let d = [...promoData];
+    if (weekFilter !== "all") {
+      d = d.filter(x => x.scan_date === weekFilter);
+    }
     if (search) {
       const q = search.toLowerCase();
       d = d.filter(x =>
@@ -192,13 +196,13 @@ function PromoRadar() {
       return sortDir === "asc" ? av - bv : bv - av;
     });
     return d;
-  }, [promoData, search, retailerFilter, categoryFilter, brandFilter, sortField, sortDir]);
+  }, [promoData, search, retailerFilter, categoryFilter, brandFilter, weekFilter, sortField, sortDir]);
 
   const paged = useMemo(() => {
     return data.slice((page - 1) * PS, page * PS);
   }, [data, page]);
   const tp = Math.max(1, Math.ceil(data.length / PS));
-  useEffect(() => { setPage(1); }, [search, retailerFilter, categoryFilter, brandFilter]);
+  useEffect(() => { setPage(1); }, [search, retailerFilter, categoryFilter, brandFilter, weekFilter]);
 
   const toggle = (f: string) => {
     if (sortField === f) {
@@ -216,6 +220,7 @@ function PromoRadar() {
   const cats = [...new Set(promoData.map(d => d.category).filter(Boolean))].sort();
   const brands = [...new Set(promoData.map(d => d.brand).filter(Boolean))].sort();
   const retailerNames = [...new Set(promoData.map(d => d.retailer).filter(Boolean))].sort();
+  const scanWeeks = [...new Set(promoData.map(d => d.scan_date).filter(Boolean))].sort().reverse();
   const householdCount = promoData.filter(p => p.category === "Household").length;
   const personalCount = promoData.filter(p => p.category === "Personal Care").length;
   const scanDate = promoData.length > 0 ? promoData[0].scan_date || "N/A" : "N/A";
@@ -300,6 +305,13 @@ function PromoRadar() {
             <div className="bar">
               <div className="srch"><SearchIcon /><input placeholder="Pretraga po brendu ili artiklu..." value={search} onChange={e => setSearch(e.target.value)} /></div>
               <div className="sel">
+                <select value={weekFilter} onChange={e => setWeekFilter(e.target.value)}>
+                  <option value="all">Svi tjedni</option>
+                  {scanWeeks.map(w => <option key={w} value={w}>Scan {w}</option>)}
+                </select>
+                <ChevronDown />
+              </div>
+              <div className="sel">
                 <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
                   <option value="all">Sve kategorije</option>
                   {cats.map(c => <option key={c} value={c}>{c}</option>)}
@@ -377,7 +389,7 @@ function PromoRadar() {
             {!sent ? (<>
               <h2>Pretplata na tjedni report</h2>
               <p>Household & Personal Care promo digest svakog cetvrtka.</p>
-              <input type="email" placeholder="markomintas@gmail.com" autoFocus />
+              <input type="email" placeholder="vas@email.com" autoFocus />
               <div className="ma">
                 <button className="btn" onClick={() => { setShowModal(false); setSent(false); }}>Odustani</button>
                 <button className="btn btn-a" onClick={() => setSent(true)}>Pretplati se</button>

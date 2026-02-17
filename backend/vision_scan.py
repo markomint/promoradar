@@ -413,8 +413,14 @@ def upload_to_supabase(products):
     print("[UPLOAD] " + str(len(products)) + " proizvoda")
 
     try:
-        supabase.table("promo_items").delete().neq("id", 0).execute()
-        print("  Baza ociscena")
+        # Obrisi samo retailere koje skeniramo u ovom runu
+        retailers = list(set((p.get("retailer") or "") for p in products))
+        for ret in retailers:
+            if ret:
+                supabase.table("promo_items").delete().eq(
+                    "retailer", ret
+                ).eq("scan_date", TODAY).execute()
+                print("  Ocisceno za danas: " + ret)
     except Exception as e:
         print("  " + str(e))
 
