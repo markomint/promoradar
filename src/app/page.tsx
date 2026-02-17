@@ -27,8 +27,8 @@ interface PromoItem {
   category: string;
   regular_price: number | null;
   promo_price: number | null;
-  discount_pct: number;
-  promo_type: string;
+  discount_pct: number | null;
+  share_of_page: string;
   valid_from: string;
   valid_to: string;
   scan_date: string;
@@ -112,6 +112,11 @@ tr:hover td{background:rgba(59,130,246,.03)}tr:last-child td{border-bottom:0}
 .img-close{position:absolute;top:-16px;right:-16px;width:36px;height:36px;border-radius:50%;background:var(--card);border:1px solid var(--bdr);color:var(--t1);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;z-index:2}
 .img-close:hover{background:var(--red);border-color:var(--red)}
 tr.clickable{cursor:pointer}tr.clickable:hover td{background:rgba(59,130,246,.08)}
+.sop{font:11px var(--m);padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.5px}
+.sop-hero{background:rgba(239,68,68,.15);color:#f87171;font-weight:700}
+.sop-premium{background:rgba(245,158,11,.15);color:#fbbf24;font-weight:600}
+.sop-standard{background:rgba(59,130,246,.1);color:#60a5fa}
+.sop-small{background:rgba(100,116,139,.1);color:var(--t3)}
 .loading-spin{width:24px;height:24px;border:3px solid var(--bdr);border-top-color:var(--acc);border-radius:50%;animation:spin 1s linear infinite;margin-right:12px}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}}
@@ -217,10 +222,11 @@ function PromoRadar() {
   const getRet = (name: string) => RETAILERS[name] || { name: name, color: "#666", logo: "?" };
 
   const exportCSV = () => {
-    const h = ["Retailer","Brand","Article","Size","Category","Akcijska cijena EUR","Tip akcije","Vrijedi od","Vrijedi do"];
+    const h = ["Retailer","Brand","Article","Size","Category","Akcijska cijena EUR","Popust %","Share of Page","Vrijedi od","Vrijedi do"];
     const r = data.map(d => {
       const pro = d.promo_price ? d.promo_price.toString() : "";
-      return [d.retailer, d.brand, d.article, d.size || "", d.category || "", pro, d.promo_type || "", d.valid_from || "", d.valid_to || ""];
+      const disc = d.discount_pct ? "-" + d.discount_pct + "%" : "";
+      return [d.retailer, d.brand, d.article, d.size || "", d.category || "", pro, disc, d.share_of_page || "", d.valid_from || "", d.valid_to || ""];
     });
     const csv = [h, ...r].map(row => row.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -322,7 +328,8 @@ function PromoRadar() {
                 <th>Size</th>
                 <th className={sortField === "category" ? "on" : ""} onClick={() => toggle("category")}>Kategorija<Arrow f="category" /></th>
                 <th className={sortField === "promo_price" ? "on" : ""} onClick={() => toggle("promo_price")}>Akcijska cijena<Arrow f="promo_price" /></th>
-                <th>Tip</th>
+                <th className={sortField === "discount_pct" ? "on" : ""} onClick={() => toggle("discount_pct")}>Popust %<Arrow f="discount_pct" /></th>
+                <th className={sortField === "share_of_page" ? "on" : ""} onClick={() => toggle("share_of_page")}>Share of Page<Arrow f="share_of_page" /></th>
               </tr></thead>
               <tbody>{paged.map((item, i) => {
                 const r = getRet(item.retailer);
@@ -339,7 +346,8 @@ function PromoRadar() {
                     <td><span className="sz">{item.size || "-"}</span></td>
                     <td><span className={catClass}>{item.category || "-"}</span></td>
                     <td><span className="pc" style={{ color: "var(--grn)" }}>{item.promo_price ? "\u20AC" + item.promo_price.toFixed(2) : "\u2014"}</span></td>
-                    <td><span className="pt">{item.promo_type || "-"}</span></td>
+                    <td><span className="pt" style={{ color: item.discount_pct ? "var(--red)" : "var(--t3)" }}>{item.discount_pct ? "-" + item.discount_pct + "%" : "\u2014"}</span></td>
+                    <td><span className={"sop sop-" + (item.share_of_page || "Standard").toLowerCase()}>{item.share_of_page || "-"}</span></td>
                   </tr>
                 );
               })}</tbody></table>
@@ -369,7 +377,7 @@ function PromoRadar() {
             {!sent ? (<>
               <h2>Pretplata na tjedni report</h2>
               <p>Household & Personal Care promo digest svakog cetvrtka.</p>
-              <input type="email" placeholder="vas@email.com" autoFocus />
+              <input type="email" placeholder="markomintas@gmail.com" autoFocus />
               <div className="ma">
                 <button className="btn" onClick={() => { setShowModal(false); setSent(false); }}>Odustani</button>
                 <button className="btn btn-a" onClick={() => setSent(true)}>Pretplati se</button>
